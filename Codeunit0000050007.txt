@@ -3,7 +3,7 @@ OBJECT Codeunit 50007 AAH Custom e-Com Library
   OBJECT-PROPERTIES
   {
     Date=02/10/23;
-    Time=[ 5:19:01 PM];
+    Time=[ 5:19:02 PM];
     Modified=Yes;
     Version List=AAH,WS,WICS;
   }
@@ -61,7 +61,7 @@ OBJECT Codeunit 50007 AAH Custom e-Com Library
       FieldErrorText@50011 : TextConst 'ENU=You can''t modify field %1;NLD=U mag veld %1 niet wijzigen.';
       Text001@50004 : TextConst 'ENU=%1 lines could not be retreived from the imported file. Manual lines cannot be exported.;NLD=%1 regels konden niet uit de import worden opgehaald. Handmatige regels worden niet overgebracht.';
       "NAV+"@50005 : Codeunit 11196400;
-      Text002@50007 : TextConst 'ENU=No imported file has been linked to %1 %2.;NLD=Er is geen ge‹mporteerd bestand gekoppeld aan %1 %2.';
+      Text002@50007 : TextConst 'ENU=No imported file has been linked to %1 %2.;NLD=Er is geen geï¿½mporteerd bestand gekoppeld aan %1 %2.';
       TextMgt@50028 : Codeunit 11196454;
       FileMgt@50029 : Codeunit 419;
 
