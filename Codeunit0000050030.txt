@@ -1,0 +1,212 @@
+OBJECT Codeunit 50030 AAH WICS Outbound
+{
+  OBJECT-PROPERTIES
+  {
+    Date=25/09/23;
+    Time=[ 3:35:13 PM];
+    Modified=Yes;
+    Version List=AAH,WICS;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      CompanyInfo@50002 : Record 79;
+      IO@50000 : Codeunit 11196418;
+      TestMode@50001 : Boolean;
+      ToBeDefined@50004 : TextConst 'ENU=This function is not supported.\%1;NLD=Deze functie wordt niet ondersteund.\%1';
+
+    PROCEDURE InitializeExport@11196402();
+    BEGIN
+      // 2023-09-25 EHS
+      CompanyInfo.GET();
+    END;
+
+    PROCEDURE FinalizeExport@50000();
+    BEGIN
+      IO.SetDefaultXmlDeclaration;
+    END;
+
+    PROCEDURE SaveToStream@11196409(VAR OutStr@11196400 : OutStream);
+    BEGIN
+      IO.SaveToStream(OutStr);
+    END;
+
+    PROCEDURE SetTestMode@11196359(B@11196350 : Boolean);
+    BEGIN
+      TestMode := B;
+    END;
+
+    PROCEDURE WriteSalesOrder@50001(SalesHeader@50000 : Record 36);
+    BEGIN
+      IO.InitializeExport('Root');
+      WriteSalesOrderHeader(SalesHeader);
+    END;
+
+    LOCAL PROCEDURE WriteSalesOrderHeader@50002(SalesHeader@50000 : Record 36);
+    VAR
+      SellToCust@50001 : Record 18;
+      BillToCust@50002 : Record 18;
+    BEGIN
+      SellToCust.GET(SalesHeader."Sell-to Customer No.");
+      BillToCust.GET(SalesHeader."Bill-to Customer No.");
+
+      IO.StartParent('WarehouseHeader');
+
+      IO.AddValue('Type','Uitgaand');
+      IO.AddValue('No',SalesHeader."No.");
+      IO.AddValue('Description',SalesHeader."Your Reference");
+      IO.AddValue('LocationCode',SalesHeader."Location Code");
+      IO.AddValue('ResponsibilityCenter',SalesHeader."Responsibility Center");
+      IO.AddValue('ShipmentDate',SalesHeader."Shipment Date");
+      WriteRequestedDeliveryDate(SalesHeader."Requested Delivery Date",SalesHeader."Requested Delivery Time");
+      IO.AddValue('DestinationType','Klant');
+      IO.AddValue('DestinationNo',SalesHeader."Sell-to Customer No.");
+      WITH SalesHeader DO
+        WriteAddress('Destination',"Ship-to Name","Ship-to Name 2","Ship-to Address","Ship-to Address 2","Ship-to Post Code","Ship-to City",
+          "Ship-to Country/Region Code","Ship-to Contact","Ship-to County",'',"Ship-to E-Mail");
+      IO.AddValue('DestinationLanguage',SalesHeader."Language Code");
+      IO.AddValue('DestinationRemark','');// 2023-09-25 EHS
+      WITH SalesHeader DO
+        WriteAddress('Invoice',"Bill-to Name","Bill-to Name 2","Bill-to Address","Bill-to Address 2","Bill-to Post Code","Bill-to City",
+          "Bill-to Country/Region Code","Bill-to Contact","Bill-to County",'',"Bill-to E-Mail");
+      IO.AddValue('ShippingAgentCode',SalesHeader."Shipping Agent Code");
+      IO.AddValue('ShippingAgentServiceCode',SalesHeader."Shipping Agent Service Code");
+      IO.AddValue('ShipmentMethodCode',SalesHeader."Shipment Method Code");
+      IO.AddValue('SenderGLN',CompanyInfo.GLN);
+      // IO.AddValue('RecipientGLN/','
+      // IO.AddValue('BuyFromGLN/','
+      IO.AddValue('SellToGLN',SellToCust.GLN);
+      //IO.AddValue('ShipToGLN',ShipToAddr.GLN);
+      IO.AddValue('BillToGLN',BillToCust.GLN);
+
+      WriteSalesOrderComments(SalesHeader);
+      WriteSalesOrderLines(SalesHeader);
+      IO.FinalizeParent;
+    END;
+
+    LOCAL PROCEDURE WriteSalesOrderLines@50003(SalesHeader@50000 : Record 36);
+    VAR
+      SalesLine@50001 : Record 37;
+    BEGIN
+      SalesLine.RESET();
+      SalesLine.SETRANGE("Document Type",SalesHeader."Document Type");
+      SalesLine.SETRANGE("Document No.",SalesHeader."No.");
+      SalesLine.SETRANGE(Type,SalesLine.Type::Item);
+      SalesLine.SETFILTER("No.",'<>%1','');
+      //SalesLine.SETFILTER("Outstanding Quantity",'<','0');
+      SalesLine.FINDSET();
+      REPEAT
+        WriteSalesOrderLine(SalesLine,SalesHeader);
+      UNTIL SalesLine.NEXT() = 0;
+    END;
+
+    LOCAL PROCEDURE WriteSalesOrderLine@50004(SalesLine@50000 : Record 37;SalesHeader@50001 : Record 36);
+    VAR
+      Item@50002 : Record 27;
+    BEGIN
+      Item.GET(SalesLine."No.");
+
+      IO.StartParent('WarehouseLine');
+      IO.AddValue('LineNo',SalesLine."Line No.");
+      IO.AddValue('ItemNo',SalesLine."No.");
+      IO.AddValue('VariantCode',SalesLine."Variant Code");
+      IO.AddValue('Description',SalesLine.Description);
+      IO.AddValue('Description2',SalesLine."Description 2");
+      IO.AddValue('Quantity',SalesLine.Quantity);
+      IO.AddValue('UnitofMeasure',SalesLine."Unit of Measure");
+      IO.AddValue('UnitofMeasureCode',SalesLine."Unit of Measure Code");
+      IO.AddValue('QuantityBase',SalesLine."Quantity (Base)");
+      IO.AddValue('BaseUnitofMeasureCode',Item."Base Unit of Measure");
+      IO.AddValue('SourceDocument',SalesLine."Document Type");
+      IO.AddValue('SourceNo',SalesLine."Document No.");
+      IO.AddValue('SourceLineNo',SalesLine."Line No.");
+      IO.AddValue('ExternalDocNo',SalesHeader."External Document No.");
+      IO.AddValue('ExternalDocLineNo',SalesLine."Your Reference");
+      IO.AddValue('YourReference',SalesHeader."Your Reference");
+      IO.AddValue('CrossReferenceNo',SalesLine."Cross-Reference No.");
+      IO.AddValue('SourceDescription',Item.Description);
+      IO.AddValue('SourceDescription2',Item."Description 2");
+      IO.AddValue('CrossReferenceTypeNo',SalesLine."Cross-Reference Type No.");
+      WriteSalesOrderLineComments(SalesLine);
+      IO.FinalizeParent();
+    END;
+
+    LOCAL PROCEDURE WriteSalesOrderComments@50006(SalesHeader@50000 : Record 36);
+    VAR
+      SalesCommentLine@50001 : Record 44;
+    BEGIN
+      SalesCommentLine.RESET();
+      SalesCommentLine.SETRANGE("Document Type",SalesHeader."Document Type");
+      SalesCommentLine.SETRANGE("No.",SalesHeader."No.");
+      SalesCommentLine.SETRANGE("Document Line No.",0);
+      SalesCommentLine.SETRANGE("Comment Type Code",'EXTERN');// 2023-09-25 EHS: TODO Make Setting
+      WriteSalesComments(SalesCommentLine);
+    END;
+
+    LOCAL PROCEDURE WriteSalesOrderLineComments@50007(SalesLine@50000 : Record 37);
+    VAR
+      SalesCommentLine@50001 : Record 44;
+    BEGIN
+      SalesCommentLine.RESET();
+      SalesCommentLine.SETRANGE("Document Type",SalesLine."Document Type");
+      SalesCommentLine.SETRANGE("No.",SalesLine."Document No.");
+      SalesCommentLine.SETRANGE("Document Line No.",SalesLine."Line No.");
+      SalesCommentLine.SETRANGE("Comment Type Code",'EXTERN');// 2023-09-25 EHS: TODO Make Setting
+      WriteSalesComments(SalesCommentLine);
+    END;
+
+    LOCAL PROCEDURE WriteSalesComments@50008(VAR SalesCommentLine@50000 : Record 44);
+    BEGIN
+      IF NOT SalesCommentLine.HASFILTER THEN
+        ERROR(ToBeDefined);
+      IF NOT SalesCommentLine.FINDSET() THEN
+        EXIT;
+      IO.StartParent('WhseCommentLines');
+      REPEAT
+        IO.StartParent('WhseCommentLine');
+        IO.AddValue('CommentLineNo',SalesCommentLine."Line No.");
+        IO.AddValue('Comment',SalesCommentLine.Comment);
+        //IO.AddValue('DocumentTextTemplateCode',SalesCommentLine.Code);
+        IO.FinalizeParent();
+      UNTIL SalesCommentLine.NEXT() = 0;
+      IO.FinalizeParent();
+    END;
+
+    LOCAL PROCEDURE WriteRequestedDeliveryDate@50018(D@50000 : Date;T@50001 : Time);
+    BEGIN
+      IF D = 0D THEN
+        EXIT;
+      IF T = 0T THEN
+        T := 120000T;
+      IO.StartParentWithKey('Requested','Type','TEoDateTimeWindow');
+      IO.AddValue('DateTimeBegin',CREATEDATETIME(D,T));
+      IO.AddValue('DateTimeEnd',CREATEDATETIME(D,T));
+      IO.FinalizeParent();
+    END;
+
+    LOCAL PROCEDURE WriteAddress@50022(Prefix@50000 : Text;Name@50001 : Text;Name2@50010 : Text;Address@50009 : Text;Address2@50008 : Text;PostCode@50007 : Text;City@50006 : Text;County@50005 : Text;CountryRegionCode@50004 : Text;ContactName@50003 : Text;PhoneNo@50002 : Text;EMail@50011 : Text);
+    BEGIN
+      IO.AddValue(Prefix + 'Name',Name);
+      IO.AddValue(Prefix + 'Name2',Name2);
+      IO.AddValue(Prefix + 'Address',Address);
+      IO.AddValue(Prefix + 'Address2',Address2);
+      IO.AddValue(Prefix + 'PostCode',PostCode);
+      IO.AddValue(Prefix + 'City',City);
+      IO.AddValue(Prefix + 'CountryRegion',CountryRegionCode);
+      IO.AddValue(Prefix + 'Contact',ContactName);
+      IO.AddValue(Prefix + 'County',County);
+      IO.AddValue(Prefix + 'PhoneNo',PhoneNo);
+      IO.AddValue(Prefix + 'Email',EMail);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+

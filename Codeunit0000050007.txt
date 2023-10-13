@@ -1,0 +1,955 @@
+OBJECT Codeunit 50007 AAH Custom e-Com Library
+{
+  OBJECT-PROPERTIES
+  {
+    Date=02/10/23;
+    Time=[ 5:19:01 PM];
+    Modified=Yes;
+    Version List=AAH,WS,WICS;
+  }
+  PROPERTIES
+  {
+    TableNo=11196400;
+    OnRun=BEGIN
+            CASE "Codeunit Action" OF
+              "Codeunit Action"::"Get Function List" :
+                GetFunctionList(Rec);
+              "Codeunit Action"::"Get Parameter List" :
+                GetParameterList(Rec);
+              "Codeunit Action"::"Validate Parameter Value" :
+                ValidateParameterValue(Rec);
+              "Codeunit Action"::"Run Function" :
+                RunFunction(Rec);
+            END;
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      CodeunitTitle@50010 : TextConst 'ENU=AAH Custom e-Com Functions;NLD=AAH e-Com maatwerk functies';
+      F001@11196406 : TextConst '@@@=SHIP TO CUST NAME';
+      F002@50000 : TextConst '@@@=GET COUNTRY NAME';
+      F003@50002 : TextConst '@@@=UPDATE EXCEL QUOTE';
+      F004@50012 : TextConst 'ENU=GET ITEM CROSS. REF.;NLD=GET ITEM CROSS. REF.';
+      F005@50014 : TextConst 'ENU=GET GRPD ITEM ATTRS;NLD=GET GRPD ITEM ATTRS';
+      F006@50018 : TextConst 'ENU=GET PROD. CAT. FLTR.;NLD=GET PROD. CAT. FLTR.';
+      F007@50020 : TextConst 'ENU=GET ITEM TRANSLATION;NLD=GET ITEM TRANSLATION';
+      F008@50022 : TextConst 'ENU=GET SHIPMENT INFO 1';
+      F010@50024 : TextConst 'ENU=GET CNTRY. OF ORIGIN';
+      F011@50026 : TextConst 'ENU=IMPORT ABC CLASS';
+      F050@50030 : TextConst 'ENU=WIX OUT S.ORDER';
+      F060@50032 : TextConst 'ENU=WIX IN STOCK MUT.';
+      F098@50016 : TextConst 'ENU=SET GRPD ITEM ATTRS;NLD=SET GRPD ITEM ATTRS';
+      F099@50008 : TextConst '@@@=GET TEMP DIR';
+      Description001@11196411 : TextConst 'ENU=Get Ship-to Customer Name from Whse. Act. Line;NLD=Orderklantnaam ophalen van Mag. activiteitsregel';
+      Description002@50001 : TextConst 'ENU=Get Country Name from Whse. Shipment Line;NLD=Land naam ophalen van Mag. verzendregel';
+      Description003@50003 : TextConst 'ENU=Update Excel Quote;NLD=Excel offerte bijwerken';
+      Description004@50013 : TextConst 'ENU=Get Item Cross Reference String;NLD=Artikelkruisverwijzingen ophalen';
+      Description005@50015 : TextConst 'ENU=Get Display Grouped Item Attributes;NLD=Artikelkenmerkengroepen ophalen';
+      Description006@50019 : TextConst 'ENU=Get Webshop Product Category Code Filter;NLD=Webshop productcategoriecodefilter ophalen';
+      Description007@50021 : TextConst 'ENU=Get Webshop Item Translation;NLD=Webshopartikel vertaling ophalen';
+      Description008@50023 : TextConst 'ENU=Get Shipment information from lines or DO;NLD=Verkoopverzendinformatie van regels of DO';
+      Description010@50025 : TextConst 'ENU=Get Country of Origin Name;NLD=Land van herkomst naam ophalen';
+      Description011@50027 : TextConst 'ENU=Import ABC-classification;NLD=ABC-classificatie importeren';
+      Description050@50031 : TextConst 'ENU=Write WICS Sales Order;NLD=Write WICS Sales Order';
+      Description060@50033 : TextConst 'NLD=Read WICS Stock Mutation';
+      Description098@50017 : TextConst 'ENU=Create Webshop Item View Attr. Templates;NLD=Webshop artikelkenmerksjablonen aanmaken';
+      Description099@50009 : TextConst 'ENU=Get Temporary Directory;NLD=Tijdelijk pad ophalen';
+      ToBeDefined@70012 : TextConst 'ENU=This function is not supported.;NLD=Deze functie wordt niet ondersteund.';
+      RecMgt@50006 : Codeunit 11196456;
+      FieldErrorText@50011 : TextConst 'ENU=You can''t modify field %1;NLD=U mag veld %1 niet wijzigen.';
+      Text001@50004 : TextConst 'ENU=%1 lines could not be retreived from the imported file. Manual lines cannot be exported.;NLD=%1 regels konden niet uit de import worden opgehaald. Handmatige regels worden niet overgebracht.';
+      "NAV+"@50005 : Codeunit 11196400;
+      Text002@50007 : TextConst 'ENU=No imported file has been linked to %1 %2.;NLD=Er is geen ge‹mporteerd bestand gekoppeld aan %1 %2.';
+      TextMgt@50028 : Codeunit 11196454;
+      FileMgt@50029 : Codeunit 419;
+
+    [EventSubscriber(Codeunit,11196401,CollectLibraryCodeunits,"",Skip)]
+    LOCAL PROCEDURE OnCollectLibraryCodeunits@11196475(VAR CodeunitIDBuffer@11196400 : Record 11196400);
+    VAR
+      TriggerMgt@11196401 : Codeunit 11196401;
+    BEGIN
+      TriggerMgt.PublishCodeunit(CodeunitIDBuffer,CODEUNIT::"AAH Custom e-Com Library",CodeunitTitle);
+    END;
+
+    PROCEDURE GetFunctionList@70000(VAR Generic@70000 : Record 11196400);
+    VAR
+      Field@70001 : Record 2000000041;
+    BEGIN
+      CASE Generic."Table ID" OF
+        DATABASE::"Sales Shipment Header":
+          BEGIN
+            Generic.ListFunction(8,F008,Description008,Field.Type::Decimal,'');
+          END;
+        DATABASE::"Warehouse Activity Line":
+          BEGIN
+            Generic.ListFunction(1,F001,Description001,Field.Type::Text,'');
+          END;
+        DATABASE::"Warehouse Shipment Line":
+          BEGIN
+            Generic.ListFunction(2,F002,Description002,Field.Type::Text,'');
+          END;
+        DATABASE::"N+ e-Com Message":
+          BEGIN
+            Generic.ListFunction(3,F003,Description003,Field.Type::Boolean,'');
+            Generic.ListFunction(11,F011,Description011,Field.Type::Boolean,'');
+          END;
+        DATABASE::"N+ Webshop Item View":
+          BEGIN
+            Generic.ListFunction(4,F004,Description004,Field.Type::Text,'');
+            Generic.ListFunction(6,F006,Description006,Field.Type::Text,'');
+            Generic.ListFunction(7,F007,Description007,Field.Type::Text,'');
+          END;
+        DATABASE::"N+ Webshop Product Category":
+          BEGIN
+            Generic.ListFunction(5,F005,Description005,Field.Type::Text,'');
+          END;
+      END;
+
+      Generic.ListFunction(10,F010,Description010,Field.Type::Text,'');
+      Generic.ListFunction(50,F050,Description050,0,'');
+      Generic.ListFunction(60,F060,Description060,0,'');
+      Generic.ListFunction(98,F098,Description098,0,'');
+      Generic.ListFunction(99,F099,Description099,Field.Type::Text,'');
+    END;
+
+    PROCEDURE GetParameterList@70002(VAR Generic@70000 : Record 11196400);
+    VAR
+      Field@70003 : Record 2000000041;
+    BEGIN
+      CASE Generic.Code OF
+        F004:
+          BEGIN
+            Generic.ListParameter('CROSS-REF. TYPE','Cross-Reference type filter',Field.Type::Text,0,'4|5','FILTER','',0);
+            Generic.ListParameter('SEPARATOR','Text separator',Field.Type::Text,0,',','','',0);
+          END;
+        F005:
+          BEGIN
+            Generic.ListParameter('SEPARATOR','Text separator',Field.Type::Text,0,',','','',0);
+          END;
+        F006:
+          BEGIN
+            Generic.ListParameter('SEPARATOR','Text separator',Field.Type::Text,0,'|','','',0);
+          END;
+        F007:
+          BEGIN
+            Generic.ListParameter('LANGUAGE','Language Code',Field.Type::Code,DATABASE::Language,'ENU','','',0);
+            Generic.ListParameter('COMPANY','Company name',Field.Type::Text,DATABASE::Company,'Alligator China Co., Ltd','','',0);
+          END;
+        F008:
+          BEGIN
+            Generic.ListParameter('SOURCE','0=Sales Shipment Line, 1=Distribution Order Line',Field.Type::Integer,0,'1','','',0);
+            Generic.ListParameter('TYPE','0=Gross Weight, 1=Net Weight, 2=Packages',Field.Type::Decimal,0,'1','','',0);
+          END;
+        F010:
+          BEGIN
+            Generic.ListParameter('CAPTION','Caption with separetor',Field.Type::Text,0,'COO: ','','',0);
+          END;
+        F098:
+          BEGIN
+            Generic.ListParameter('WEBSHOP STORE CODE','Webshop Store Code',Field.Type::Code,DATABASE::"N+ Webshop Store",'BASE','','',0);
+            Generic.ListParameter('CAT. CODE FILTER','Attribute Category Filter',Field.Type::Text,0,',','FILTER','',0);
+          END;
+        F099:
+          Generic.ListParameter('CLIENT','Client Temp Directory',Field.Type::Boolean,0,'','','',0);
+      END;
+    END;
+
+    PROCEDURE ValidateParameterValue@70003(VAR Generic@70000 : Record 11196400);
+    BEGIN
+    END;
+
+    PROCEDURE RunFunction@70001(VAR Generic@70000 : Record 11196400);
+    BEGIN
+      CASE Generic."Integer Value" OF
+        1: GetShipToCustNameFromWhseActLine(Generic);
+        2: GetCountryNameFromWhseShptLine(Generic);
+        3: UpdateExcelQuote(Generic);
+        4: GetItemCrossRef(Generic);
+        5: GetGroupedItemAttributes(Generic);
+        6: GetWebshopProductCategoryFilter(Generic);
+        7: GetItemTranslation(Generic);
+        8: GetInformation1ForSalesShipment(Generic);
+        9: GetInformation2ForSalesShipment(Generic);
+        10: GetCountryOfOriginName(Generic);
+        11: ImportABCClassification(Generic);
+        50: WriteWICSSalesOrder(Generic);
+        60: ReadWICSStockMutation(Generic);
+        98: CreateGroupedItemAttTemplates(Generic);
+        99: GetTempDir(Generic);
+        ELSE
+          ERROR(ToBeDefined);
+      END;
+    END;
+
+    PROCEDURE "------ Functions ------"@70012();
+    BEGIN
+    END;
+
+    LOCAL PROCEDURE GetShipToCustNameFromWhseActLine@50001(VAR Generic@50000 : Record 11196400);
+    VAR
+      WhseActivityLine@50001 : Record 5767;
+      WhseShipmentLine@50003 : Record 7321;
+      AAHWhseMgt@50005 : Codeunit 50001;
+      RecRef@50002 : RecordRef;
+      Result@50004 : Text;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WhseActivityLine);
+
+      Result := AAHWhseMgt.GetSourceNameOfSourceDocumentLineNo(WhseActivityLine);
+
+      Generic.SetReturnValue(Result);
+    END;
+
+    LOCAL PROCEDURE GetCountryNameFromWhseShptLine@50000(VAR Generic@50000 : Record 11196400);
+    VAR
+      WhseShipmentLine@50003 : Record 7321;
+      SalesHeader@50001 : Record 36;
+      CountryRegion@50006 : Record 9;
+      AAHWhseMgt@50005 : Codeunit 50001;
+      RecRef@50002 : RecordRef;
+      Result@50004 : Text;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WhseShipmentLine);
+      CASE WhseShipmentLine."Source Document" OF
+        WhseShipmentLine."Source Document"::"Sales Order":
+          IF SalesHeader.GET(WhseShipmentLine."Source Type",WhseShipmentLine."Source No.") THEN
+            IF CountryRegion.GET(SalesHeader."Ship-to Country/Region Code") THEN
+              Result := CountryRegion.Name;
+      END;
+
+      Generic.SetReturnValue(Result);
+    END;
+
+    LOCAL PROCEDURE UpdateExcelQuote@50002(VAR Generic@50000 : Record 11196400);
+    VAR
+      ComMessage@50001 : Record 11196433;
+      ImportMessage@50003 : Record 11196433;
+      ImportRecord@50008 : Record 11196434;
+      ImportDataset@50015 : Record 11196435;
+      SalesHeader@50004 : Record 36;
+      SalesLine@50007 : Record 37;
+      ExcelBuf@50011 : TEMPORARY Record 11196523;
+      Item@50019 : Record 27;
+      ExcelMgt@50012 : Codeunit 11196471;
+      FileMgt@50014 : Codeunit 419;
+      NPFileMgt@50017 : Codeunit 11196457;
+      AttributeMgt@50009 : Codeunit 11196403;
+      RecRef@50002 : RecordRef;
+      ManualLinesWarning@50010 : Integer;
+      ServerFilename@50013 : Text;
+      ClientFilename@50005 : Text;
+      Row@50016 : Integer;
+      I@50018 : Integer;
+      UnitPriceValue@50020 : Text;
+      AttrSet@50006 : Text;
+    BEGIN
+      GetComMessage(Generic,ComMessage);
+
+      RecRef.GET(ComMessage."Source Record ID");
+      RecRef.SETTABLE(SalesHeader);
+
+      ImportRecord.RESET;
+      ImportRecord.SETRANGE("Source Record ID",ComMessage."Source Record ID");
+      IF ImportRecord.FINDLAST THEN
+        REPEAT
+        UNTIL (ImportMessage.GET(ImportRecord."Message Entry No.") AND (ImportMessage.Direction = ImportMessage.Direction::Inbound))
+          OR (ImportRecord.NEXT(-1) = 0);
+
+      IF (ImportMessage."Entry No." = 0) OR (ImportMessage.Direction <> ImportMessage.Direction::Inbound) THEN
+        ERROR(Text002,SalesHeader."Document Type",SalesHeader."No.");
+
+      ExcelMgt.Init(ExcelBuf);
+
+      CASE ImportMessage."Interface Code" OF
+        'IS-QTE FTM':  // Fuji Trading
+          BEGIN
+          END;
+        'IS-QTE MSS':  // Maas Shipstores
+          BEGIN
+          END;
+        'IS-QTE SSS':  // Seven Seas
+          BEGIN
+            ExcelMgt.Write(14,4,SalesHeader."No.");
+            ExcelMgt.Write(15,4,'0');
+          END;
+        'IS-QTE MPA':  // Marine Providoring Agencies
+          BEGIN
+          END;
+        'IS-QTE WSS':  // Wrist Ship Supplies
+          BEGIN
+            ExcelMgt.Write(10,12,SalesHeader."No.");
+          END;
+        ELSE
+          ImportMessage.FIELDERROR("Interface Code");
+      END;
+
+      SalesLine.SETRANGE("Document Type",SalesHeader."Document Type");
+      SalesLine.SETRANGE("Document No.",SalesHeader."No.");
+      IF SalesLine.FINDSET THEN
+        REPEAT
+          RecRef.GETTABLE(SalesLine);
+
+          ImportRecord.RESET;
+          ImportRecord.SETRANGE("Message Entry No.",ImportMessage."Entry No.");
+          ImportRecord.SETRANGE("Source Record ID",RecRef.RECORDID);
+          IF NOT ImportRecord.FINDFIRST THEN
+            ManualLinesWarning += 1
+          ELSE BEGIN
+            ImportDataset.RESET;
+            ImportDataset.SETRANGE("Message Entry No.",ImportMessage."Entry No.");
+            ImportDataset.SETRANGE("Record Entry No.",ImportRecord."Entry No.");
+            ImportDataset.SETFILTER("Row No.",'<>0');
+            ImportDataset.FINDFIRST;
+            Row := ImportDataset."Row No.";
+            UnitPriceValue := FORMAT(ROUND(SalesLine."Unit Price",0.01),0,'<Integer Thousand><Decimals,3>');
+            CASE ImportMessage."Interface Code" OF
+              'IS-QTE FTM':  // Fuji Trading
+                BEGIN
+                  ExcelMgt.Write(Row,2,SalesLine."No.");
+                  ExcelMgt.Write(Row,4,SalesLine.Description + "NAV+".RelatedAttrSet(SalesLine) + SalesLine."Description 2");
+                  ExcelMgt.Write(Row,9,CONVERTSTR(UnitPriceValue,',.','.,'));
+                  ExcelMgt.Write(Row,10,'');
+                END;
+              'IS-QTE MSS':  // Maas Shipstores
+                BEGIN
+                  ExcelMgt.Write(Row,2,SalesLine."No.");
+                  AttrSet := '';
+                  IF SalesLine.Type = SalesLine.Type::Item THEN
+                    IF Item.GET(SalesLine."No.") THEN
+                      AttrSet := AttributeMgt.FormatAttrSet(Item."Attribute Set ID",'','',0,'','%3',0);
+                  ExcelMgt.Write(Row,4,STRSUBSTNO('%1 %2 %3',SalesLine.Description,AttrSet,SalesLine."Description 2"));
+                  ExcelMgt.SetNumberFormat('#.##0,00');
+                  ExcelMgt.Write(Row,7,UnitPriceValue);
+                END;
+              'IS-QTE SSS':  // Seven Seas
+                BEGIN
+                  ExcelMgt.Write(Row,10,UnitPriceValue);
+                  ExcelMgt.Write(Row,13,'0');
+                  ExcelMgt.Write(Row,14,SalesLine."No.");
+                  ExcelMgt.Write(Row,15,STRSUBSTNO('%1, %2 %3',SalesLine."Unit of Measure",SalesLine.Description,"NAV+".RelatedAttrSet(SalesLine)));
+                END;
+              'IS-QTE MPA':  // Marine Providoring Agencies
+                BEGIN
+                  ExcelMgt.Write(Row,16,UnitPriceValue);
+                  //ExcelMgt.Write(Row,13,'0');
+                  //ExcelMgt.Write(Row,14,SalesLine."No.");
+                  ExcelMgt.Write(Row,18,STRSUBSTNO('%1 %2 %3',SalesLine."Unit of Measure",SalesLine.Description + SalesLine."Description 2","NAV+".RelatedAttrSet(SalesLine)));
+                END;
+              'IS-QTE WSS':
+                BEGIN
+                  ExcelMgt.Write(Row,4,SalesLine."No.");
+                  AttrSet := '';
+                  IF SalesLine.Type = SalesLine.Type::Item THEN
+                    IF Item.GET(SalesLine."No.") THEN
+                      AttrSet := AttributeMgt.FormatAttrSet(Item."Attribute Set ID",'','',0,'','%3',0);
+                  ExcelMgt.Write(Row,14,STRSUBSTNO('%1 %2 %3',SalesLine.Description,AttrSet,SalesLine."Description 2"));
+                  //ExcelMgt.SetNumberFormat('#.##0,00');
+                  ExcelMgt.Write(Row,9,UnitPriceValue);
+                END;
+            END;
+          END;
+
+        UNTIL SalesLine.NEXT = 0;
+
+      IF ManualLinesWarning > 0 THEN
+        MESSAGE(Text001,ManualLinesWarning);
+
+      ImportMessage.CALCFIELDS(File);
+      ServerFilename := FileMgt.ServerTempFileName(FileMgt.GetExtension(ImportMessage.Filename));
+      ImportMessage.File.EXPORT(ServerFilename);
+
+      {
+      // Oude werkende code
+      ExcelBuf.UpdateBook(ServerFilename,'*');
+      ExcelBuf.WriteSheet(ImportMessage."Interface Code",COMPANYNAME,USERID);
+      ExcelBuf.CloseBook;
+      }
+
+      // Nieuwe Automation COM code
+      ClientFilename := FileMgt.DownloadTempFile(ServerFilename);
+      ExcelMgt.COMInit(ClientFilename,FALSE);
+      ExcelMgt.COMWriteSheet;
+      ExcelMgt.COMSaveAs('');
+      ExcelMgt.COMTerminate;
+
+      //ExcelBuf.DownloadAndOpenExcel;
+
+      I := 0;
+      COMMIT;
+      WHILE NPFileMgt.ClientFileInUse(ClientFilename) DO BEGIN
+        SLEEP(100);
+        I += 1;
+        IF I > 50 THEN
+          ERROR('Excel sluit niet correct af.');
+      END;
+
+      ServerFilename := FileMgt.UploadFileSilent(ClientFilename);
+      ComMessage.File.IMPORT(ServerFilename);
+      //ComMessage.Filename := FileMgt.GetFileName(ImportMessage.Filename);
+      ComMessage.Filename := FileMgt.GetFileNameWithoutExtension(ImportMessage.Filename + '.xlsx');
+      ComMessage.MODIFY;
+      //ComMessage.OpenFile;
+
+      Generic.SetReturnValue(TRUE);
+    END;
+
+    LOCAL PROCEDURE GetComMessage@50012(VAR Generic@50000 : Record 11196400;VAR ComMessage@50002 : Record 11196433);
+    VAR
+      RecRef@50001 : RecordRef;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(ComMessage);
+    END;
+
+    LOCAL PROCEDURE GetTempDir@50003(VAR Generic@50000 : Record 11196400);
+    VAR
+      FileMgt@50003 : Codeunit 419;
+      TempPath@50001 : Text;
+      ClientPath@50002 : Boolean;
+    BEGIN
+      ClientPath := Generic.GetBooleanParameter('CLIENT');
+      IF ClientPath THEN
+        TempPath := FileMgt.ClientTempFileName('txt')
+      ELSE
+        TempPath := FileMgt.ServerTempFileName('txt');
+      //FileMgt.GetDirectoryName(TempPath);
+      Generic.SetReturnValue(FileMgt.GetDirectoryName(TempPath));
+    END;
+
+    LOCAL PROCEDURE GetItemCrossRef@50004(VAR Generic@50000 : Record 11196400);
+    VAR
+      WebshopItemView@50002 : Record 11196453;
+      ItemCrossReference@50004 : Record 5717;
+      ValueText@50001 : Text;
+      SeparatorText@50003 : Text;
+      RecRef@50005 : RecordRef;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WebshopItemView);
+      SeparatorText := Generic.GetTextParameter('SEPARATOR');
+      ItemCrossReference.SETFILTER("Cross-Reference Type",Generic.GetTextParameter('CROSS-REF. TYPE'));
+      ItemCrossReference.SETRANGE("Item No.",WebshopItemView."Item No.");
+      ItemCrossReference.SETFILTER("Variant Code",WebshopItemView."Variant Code");
+      ItemCrossReference.SETFILTER("Unit of Measure",'%1|%2','',WebshopItemView."Unit of Measure Code");
+      IF ItemCrossReference.FINDSET THEN
+        REPEAT
+          IF ValueText <> '' THEN
+            ValueText := ValueText + SeparatorText + ItemCrossReference."Cross-Reference No."
+          ELSE
+            ValueText := ItemCrossReference."Cross-Reference No.";
+        UNTIL ItemCrossReference.NEXT = 0;
+      Generic.SetReturnValue(ValueText);
+    END;
+
+    LOCAL PROCEDURE GetGroupedItemAttributes@50005(VAR Generic@50000 : Record 11196400);
+    VAR
+      WebshopProdCat@50002 : Record 11196444;
+      AttributeSetTemplate@50006 : Record 11196451;
+      AttrSetEntryBuffer@50007 : TEMPORARY Record 11196408;
+      AttributeMgt@50004 : Codeunit 11196403;
+      TextMgt@50008 : Codeunit 11196454;
+      ValueText@50001 : Text;
+      SeparatorText@50003 : Text;
+      RecRef@50005 : RecordRef;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WebshopProdCat);
+      SeparatorText := Generic.GetTextParameter('SEPARATOR');
+
+      IF AttributeSetTemplate.GET(DATABASE::"N+ Webshop Item View",WebshopProdCat."Webshop Attribute Set") AND
+        (AttributeSetTemplate."Attribute Set ID" <> 0) THEN BEGIN
+        AttributeMgt.GetAttributeSet(AttrSetEntryBuffer,AttributeSetTemplate."Attribute Set ID");
+        AttrSetEntryBuffer.RESET;
+        IF AttrSetEntryBuffer.FINDSET THEN
+          REPEAT
+            TextMgt.Concat(ValueText,SeparatorText,AttrSetEntryBuffer."Attribute Code");
+          UNTIL AttrSetEntryBuffer.NEXT = 0;
+        //ValueText := AttributeMgt.FormatAttrSet(AttributeSetTemplate."Attribute Set ID",'','',0,SeparatorText,'%3',0);
+      END;
+      Generic.SetReturnValue(ValueText);
+    END;
+
+    LOCAL PROCEDURE CreateGroupedItemAttTemplates@50009(VAR Generic@50000 : Record 11196400);
+    VAR
+      WebshopStore@50002 : Record 11196437;
+      WebshopMgt@50001 : Codeunit 50021;
+    BEGIN
+      WebshopStore.GET(Generic.GetTextParameter('WEBSHOP STORE CODE'));
+      WebshopMgt.CreateGroupedItemAttTemplates(WebshopStore,Generic.GetTextParameter('CAT. CODE FILTER'));
+    END;
+
+    LOCAL PROCEDURE GetWebshopProductCategoryFilter@50007(VAR Generic@50000 : Record 11196400);
+    VAR
+      WebshopItemView@50002 : Record 11196453;
+      GLSetup@50007 : Record 98;
+      Item@50004 : Record 27;
+      DimensionValue@50006 : Record 349;
+      ValueText@50001 : Text;
+      RecRef@50005 : RecordRef;
+      SeparatorText@50003 : Text;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WebshopItemView);
+      SeparatorText := Generic.GetTextParameter('SEPARATOR');
+      Item.GET(WebshopItemView."Item No.");
+      GLSetup.GET;
+      DimensionValue.GET(GLSetup."Global Dimension 1 Code",Item."Global Dimension 1 Code");
+      ValueText := FORMAT(DimensionValue."Dimension Value ID") + SeparatorText;
+      DimensionValue.GET(GLSetup."Global Dimension 2 Code",Item."Global Dimension 2 Code");
+      ValueText := ValueText + FORMAT(DimensionValue."Dimension Value ID") + SeparatorText;
+      ValueText := ValueText + Item."Shortcut Attribute 2";
+      Generic.SetReturnValue(ValueText);
+    END;
+
+    LOCAL PROCEDURE GetItemTranslation@50008(VAR Generic@50000 : Record 11196400);
+    VAR
+      WebshopItemView@50002 : Record 11196453;
+      ItemTranslation@50007 : Record 30;
+      ValueText@50001 : Text;
+      RecRef@50005 : RecordRef;
+      LanguageCode@50003 : Code[10];
+      Company@50006 : Text;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(WebshopItemView);
+      LanguageCode := Generic.GetTextParameter('LANGUAGE');
+      Company := Generic.GetTextParameter('COMPANY');
+      IF Company <> COMPANYNAME THEN
+        ItemTranslation.CHANGECOMPANY(Company);
+      ItemTranslation.SETRANGE("Item No.",WebshopItemView."Item No.");
+      ItemTranslation.SETRANGE("Language Code",LanguageCode);
+      IF ItemTranslation.FINDFIRST THEN BEGIN
+        IF ItemTranslation."Description 2" <> '' THEN
+          ValueText := ItemTranslation.Description + ' ' + ItemTranslation."Description 2"
+        ELSE
+          ValueText := ItemTranslation.Description;
+      END;
+      Generic.SetReturnValue(ValueText);
+    END;
+
+    LOCAL PROCEDURE GetInformation1ForSalesShipment@50006(VAR Generic@50000 : Record 11196400);
+    VAR
+      SalesShptLine@50003 : Record 111;
+      SalesShptHeader@50001 : Record 110;
+      DistributionOrderLine@50009 : Record 50602;
+      RecRef@50002 : RecordRef;
+      SourceTable@50005 : Integer;
+      FieldType@50006 : Integer;
+      Result@50004 : Decimal;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(SalesShptHeader);
+      SourceTable := Generic.GetDecimalParameter('SOURCE');
+      FieldType := Generic.GetDecimalParameter('TYPE');
+
+      CASE SourceTable OF
+        0: BEGIN
+          SalesShptLine.SETRANGE("Document No.",SalesShptHeader."No.");
+          SalesShptLine.SETRANGE(Type,SalesShptLine.Type::Item);
+          SalesShptLine.SETFILTER("No.",'<>%1','');
+          SalesShptLine.SETFILTER(Quantity,'<>%1',0);
+          IF SalesShptLine.FINDSET THEN
+            REPEAT
+              CASE FieldType OF
+                0: Result := Result + (SalesShptLine."Gross Weight" * SalesShptLine.Quantity);
+                1: Result := Result + (SalesShptLine."Net Weight" * SalesShptLine.Quantity);
+                2: Result := Result + SalesShptLine.Quantity;
+                ELSE
+                  ERROR(ToBeDefined);
+              END;
+            UNTIL SalesShptLine.NEXT = 0;
+        END;
+        1: BEGIN
+          Result := SetFilterDistOrderLine(SalesShptHeader,FieldType);
+        END
+        ELSE
+          ERROR(ToBeDefined);
+      END;
+      Generic.SetReturnValue(Result);
+    END;
+
+    LOCAL PROCEDURE GetInformation2ForSalesShipment@50021(VAR Generic@50000 : Record 11196400);
+    VAR
+      SalesShptLine@50003 : Record 111;
+      SalesShptHeader@50001 : Record 110;
+      RecRef@50002 : RecordRef;
+      SourceTable@50005 : Integer;
+      FieldType@50006 : Integer;
+      Result@50004 : Decimal;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      RecRef.SETTABLE(SalesShptHeader);
+      SourceTable := Generic.GetDecimalParameter('SOURCE');
+      FieldType := Generic.GetDecimalParameter('TYPE');
+
+      CASE SourceTable OF
+        0: BEGIN
+          SalesShptLine.SETRANGE("Document No.",SalesShptHeader."No.");
+          SalesShptLine.SETRANGE(Type,SalesShptLine.Type::Item);
+          SalesShptLine.SETFILTER("No.",'<>%1','');
+          SalesShptLine.SETFILTER(Quantity,'<>%1',0);
+          IF SalesShptLine.FINDSET THEN
+            REPEAT
+              CASE FieldType OF
+                0: Result := Result + (SalesShptLine."Gross Weight" * SalesShptLine.Quantity);
+                1: Result := Result + (SalesShptLine."Net Weight" * SalesShptLine.Quantity);
+                2: Result := Result + SalesShptLine.Quantity;
+                ELSE
+                  ERROR(ToBeDefined);
+              END;
+            UNTIL SalesShptLine.NEXT = 0;
+        END;
+        1: BEGIN
+          Result := SetFilterDistOrderLine(SalesShptHeader,FieldType);
+        END
+        ELSE
+          ERROR(ToBeDefined);
+      END;
+      Generic.SetReturnValue(Result);
+    END;
+
+    LOCAL PROCEDURE SetFilterDistOrderLine@50016(SalesShptHeader@50001 : Record 110;FieldType@50004 : Integer) Result : Decimal;
+    VAR
+      PostedWhseShptLine@50003 : Record 7323;
+      DistOrderDetailLine@50002 : Record 50603;
+      DistributionOrderLine@50000 : Record 50602;
+      PostedDistributionLine@50005 : Record 50608;
+      PostedDistLineDetail@50006 : Record 50609;
+    BEGIN
+      PostedWhseShptLine.SETCURRENTKEY("Posted Source No.","Posting Date");
+      PostedWhseShptLine.SETRANGE("Posted Source No.",SalesShptHeader."No.");
+      IF NOT PostedWhseShptLine.FINDLAST THEN
+        EXIT(0);
+
+      DistOrderDetailLine.SETCURRENTKEY("Source Type","Source No.","Source Line No.");
+      DistOrderDetailLine.SETRANGE("Document Type",DistOrderDetailLine."Document Type"::Outbound);
+      DistOrderDetailLine.SETRANGE("Source No.",PostedWhseShptLine."Whse. Shipment No.");
+      IF DistOrderDetailLine.FINDLAST THEN BEGIN
+        DistributionOrderLine.SETRANGE("Document Type",DistOrderDetailLine."Document Type");
+        DistributionOrderLine.SETRANGE("Document No.",DistOrderDetailLine."Document No.");
+        DistributionOrderLine.CALCSUMS(Quantity,"Gross Weight","Net Weight");
+        CASE FieldType OF
+          0: Result := DistributionOrderLine."Gross Weight";
+          1: Result := DistributionOrderLine."Net Weight";
+          2: Result := DistributionOrderLine.Quantity;
+          ELSE
+            ERROR(ToBeDefined);
+        END;
+        EXIT(Result);
+      END ELSE BEGIN
+        PostedDistLineDetail.SETCURRENTKEY("Source Type","Source No.","Source Line No.");
+        PostedDistLineDetail.SETRANGE("Document Type",PostedDistLineDetail."Document Type"::Outbound);
+        PostedDistLineDetail.SETRANGE("Source No.",PostedWhseShptLine."Whse. Shipment No.");
+        IF PostedDistLineDetail.FINDLAST THEN BEGIN
+          PostedDistributionLine.SETRANGE("Document Type",PostedDistLineDetail."Document Type");
+          PostedDistributionLine.SETRANGE("Document No.",PostedDistLineDetail."Document No.");
+          PostedDistributionLine.CALCSUMS(Quantity,"Gross Weight","Net Weight");
+          CASE FieldType OF
+            0: Result := PostedDistributionLine."Gross Weight";
+            1: Result := PostedDistributionLine."Net Weight";
+            2: Result := PostedDistributionLine.Quantity;
+            ELSE
+              ERROR(ToBeDefined);
+          END;
+          EXIT(Result);
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE GetCountryOfOriginName@50010(VAR Generic@50000 : Record 11196400);
+    VAR
+      WarehouseActivityLine@50003 : Record 5767;
+      RegisteredWhseActivityLine@50007 : Record 5773;
+      Item@50001 : Record 27;
+      CountryRegion@50006 : Record 9;
+      RecRef@50002 : RecordRef;
+      Result@50004 : Text;
+      CaptionTxt@50005 : Text;
+    BEGIN
+      Generic.ReadSourceRecord(RecRef);
+      CaptionTxt := Generic.GetTextParameter('CAPTION');
+      CASE RecRef.NUMBER OF
+        DATABASE::"Warehouse Activity Line": BEGIN
+          RecRef.SETTABLE(WarehouseActivityLine);
+          IF Item.GET(WarehouseActivityLine."Item No.") THEN
+            IF CountryRegion.GET(Item."Country/Region of Origin Code") THEN
+              Result := CaptionTxt + CountryRegion.Name;
+        END;
+        DATABASE::"Registered Whse. Activity Line": BEGIN
+          RecRef.SETTABLE(RegisteredWhseActivityLine);
+          IF Item.GET(RegisteredWhseActivityLine."Item No.") THEN
+            IF CountryRegion.GET(Item."Country/Region of Origin Code") THEN
+              Result := CaptionTxt + CountryRegion.Name;
+        END;
+      END;
+
+      Generic.SetReturnValue(Result);
+    END;
+
+    LOCAL PROCEDURE ImportABCClassification@50011(VAR Generic@50000 : Record 11196400);
+    VAR
+      ComMessage@50001 : Record 11196433;
+      ExcelBuf@50004 : TEMPORARY Record 11196523;
+      IO@50003 : Codeunit 11196418;
+      ExcelMgt@50005 : Codeunit 11196471;
+      TextMgt@50007 : Codeunit 11196454;
+      InStr@50002 : InStream;
+      Row@50006 : Integer;
+    BEGIN
+      GetComMessage(Generic,ComMessage);
+
+      ComMessage.CALCFIELDS(File);
+      ComMessage.TESTFIELD(File);
+      ComMessage.File.CREATEINSTREAM(InStr);
+
+      ExcelMgt.Init(ExcelBuf);
+      IO.ReadExcelBufferFromStream(ExcelBuf,InStr,TextMgt.TAB,'',FALSE);
+
+      FOR Row := 3 TO ExcelMgt.MaxRow(0) DO
+        ImportItemABC(
+          ExcelMgt.GetValue(Row,1),
+          ExcelMgt.GetValue(Row,2),
+          ExcelMgt.GetValue(Row,3));
+
+      Generic.SetReturnValue(TRUE);
+    END;
+
+    LOCAL PROCEDURE ImportItemABC@50013(ItemNo@50000 : Code[20];CompanyCode@50003 : Code[10];ABC@50001 : Code[10]);
+    VAR
+      Item@50002 : Record 27;
+    BEGIN
+      CASE CompanyCode OF
+        'CN-': Item.CHANGECOMPANY('Alligator China Co., Ltd');
+        'HK-': Item.CHANGECOMPANY('Alligator Hong Kong SG branch');
+        'SG-': Item.CHANGECOMPANY('Alligator Singapore');
+        'NL-': Item.CHANGECOMPANY('A.A.H. Alligator');
+        'US-': Item.CHANGECOMPANY('MSW Houston');
+        ELSE
+          EXIT;
+      END;
+
+      IF NOT Item.GET(ItemNo) THEN
+        EXIT;
+      IF Item."ABC-Classification Code" = ABC THEN
+        EXIT;
+
+      Item."ABC-Classification Code" := ABC;
+      Item.MODIFY;
+    END;
+
+    LOCAL PROCEDURE "----- Outbound Process -----"@50015();
+    BEGIN
+    END;
+
+    LOCAL PROCEDURE InitExport@11196355(VAR Generic@11196350 : Record 11196400;VAR RecRef@11196351 : RecordRef;VAR SourceRecRef@11196352 : RecordRef;VAR TempBlob@11196354 : Record 99008535;VAR OutStr@11196353 : OutStream);
+    VAR
+      ComMessage@11196355 : Record 11196433;
+      TempBlobRecRef@11196356 : RecordRef;
+    BEGIN
+      // 2023-09-25 EHS Downgraded from codeunit "N+ e-Com Library"
+      Generic.ReadSourceRecord(RecRef);
+      CASE RecRef.NUMBER OF
+        DATABASE::"N+ e-Com Message":
+          BEGIN
+            RecRef.SETTABLE(ComMessage);
+            IF ComMessage."Source Table No." <> 0 THEN BEGIN
+              ComMessage.TESTFIELD("Source Record ID");
+              SourceRecRef.GET(ComMessage."Source Record ID")
+            END ELSE
+              SourceRecRef.GETTABLE(ComMessage);
+          END;
+        ELSE BEGIN
+          SourceRecRef := RecRef;
+      //    IF Generic.TryGetSecondarySourceRecord(TempBlobRecRef,DATABASE::TempBlob) THEN
+      //      TempBlobRecRef.SETTABLE(TempBlob);
+        END;
+      END;
+      TempBlob.Blob.CREATEOUTSTREAM(OutStr);
+    END;
+
+    LOCAL PROCEDURE FinalizeExport@11196356(VAR Generic@11196352 : Record 11196400;VAR RecRef@11196353 : RecordRef;VAR SourceRecRef@11196355 : RecordRef;VAR TempBlob@11196356 : Record 99008535;DefaultFilename@11196354 : Text);
+    VAR
+      ComMessage@11196351 : Record 11196433;
+      TempBlobRecRef@11196357 : RecordRef;
+      Filename@11196350 : Text;
+    BEGIN
+      // 2023-09-25 EHS Downgraded from codeunit "N+ e-Com Library"
+      CASE RecRef.NUMBER OF
+        DATABASE::"N+ e-Com Message":
+          BEGIN
+            RecRef.SETTABLE(ComMessage);
+            ComMessage.File := TempBlob.Blob;
+            ComMessage.MODIFY;
+            Generic.UpdateSourceRecord(ComMessage);
+          END;
+        DATABASE::"Job Queue Entry":
+          BEGIN
+            Filename := STRSUBSTNO(Generic.GetTextParameter('FILENAME'),TextMgt.FormatKey(SourceRecRef,FALSE,FALSE));
+            TempBlob.Blob.EXPORT(Filename);
+          END;
+        ELSE BEGIN
+      //    IF Generic.TryGetSecondarySourceRecord(TempBlobRecRef,DATABASE::TempBlob) THEN BEGIN
+      //      Generic.UpdateSourceRecord(TempBlob)
+      //    END ELSE BEGIN
+            Filename := Generic.TryGetTextParameter('FILENAME');
+            IF Filename = '' THEN
+              Filename := STRSUBSTNO(DefaultFilename,TextMgt.FormatKey(SourceRecRef,FALSE,FALSE));
+            FileMgt.BLOBExport(TempBlob,Filename,TRUE);
+      //    END;
+        END;
+      END;
+    END;
+
+    LOCAL PROCEDURE InitWICSExport@11196371(VAR WICSOutbound@11196357 : Codeunit 50030;VAR Generic@11196350 : Record 11196400;VAR RecRef@11196351 : RecordRef;VAR SourceRecRef@11196352 : RecordRef;VAR TempBlob@11196354 : Record 99008535;VAR OutStr@11196353 : OutStream);
+    VAR
+      ComMessage@11196355 : Record 11196433;
+      TempBlobRecRef@11196356 : RecordRef;
+    BEGIN
+      InitExport(Generic,RecRef,SourceRecRef,TempBlob,OutStr);
+      WICSOutbound.InitializeExport();
+      //WICSOutbound.SetTestMode(Generic.GetBooleanParameter('TEST MODE'));
+      // IF RecRef.NUMBER = DATABASE::"N+ e-Com Message" THEN
+      //  IF RecMgt.TryGetTextFieldByName(SourceRecRef,'Your Reference') = '' THEN
+      //    WICSOutbound.SetMessageReference(FORMAT(RecRef.KEYINDEX(1).FIELDINDEX(1).VALUE));
+    END;
+
+    LOCAL PROCEDURE FinalizeWICSExport@11196380(VAR WICSOutbound@11196358 : Codeunit 50030;VAR OutStr@11196359 : OutStream;VAR Generic@11196352 : Record 11196400;VAR RecRef@11196353 : RecordRef;VAR SourceRecRef@11196355 : RecordRef;VAR TempBlob@11196356 : Record 99008535;DefaultFilename@11196354 : Text);
+    VAR
+      ComMessage@11196351 : Record 11196433;
+      TempBlobRecRef@11196357 : RecordRef;
+      Filename@11196350 : Text;
+    BEGIN
+      WICSOutbound.FinalizeExport();
+      WICSOutbound.SaveToStream(OutStr);
+      FinalizeExport(Generic,RecRef,SourceRecRef,TempBlob,DefaultFilename);
+    END;
+
+    LOCAL PROCEDURE WriteWICSSalesOrder@50014(VAR Generic@50000 : Record 11196400);
+    VAR
+      SalesHeader@50006 : Record 36;
+      TempBlob@50004 : TEMPORARY Record 99008535;
+      WICSOutbound@50001 : Codeunit 50030;
+      RecRef@50002 : RecordRef;
+      DocumentRecRef@50003 : RecordRef;
+      OutStr@50005 : OutStream;
+    BEGIN
+      InitWICSExport(WICSOutbound,Generic,RecRef,DocumentRecRef,TempBlob,OutStr);
+
+      //TransusOutbound.SetOrderNumberBuyerFuncSetID(Generic.GetDecimalParameter('ORDERNUMBERBUYER F/S'));
+      DocumentRecRef.SETTABLE(SalesHeader);
+      WICSOutbound.WriteSalesOrder(SalesHeader);
+
+      FinalizeWICSExport(WICSOutbound,OutStr,Generic,RecRef,DocumentRecRef,TempBlob,'%1.xml');
+    END;
+
+    LOCAL PROCEDURE "----- Inbound Process -----"@50017();
+    BEGIN
+    END;
+
+    LOCAL PROCEDURE InitImport@11196377(VAR Generic@11196350 : Record 11196400;VAR RecRef@11196351 : RecordRef;VAR TempBlob@11196358 : Record 99008535;VAR InStr@11196353 : InStream;VAR ImportedDataBuffer@11196352 : Record 11196400;Extension@50001 : Text);
+    VAR
+      ComMessage@11196355 : Record 11196433;
+      FileMgt@11196356 : Codeunit 419;
+      XmlFilesFilterTxt@11196357 : TextConst 'ENU=Xml Files|*.xml;NLD=Xml-bestanden|*.xml';
+      ExcelFilesFilterTxt@50000 : TextConst 'ENU=Excel Files|*.xls*;NLD=Excel-bestanden|*.xls*';
+      FilesFilterText@50002 : Text;
+    BEGIN
+      // 2023-09-25 EHS Downgraded from codeunit "N+ e-Com Library"
+      Generic.ReadSourceRecord(RecRef);
+
+      CASE Extension OF
+        'xml':
+          FilesFilterText := XmlFilesFilterTxt;
+        'xls','xlsx':
+          BEGIN
+            FilesFilterText := ExcelFilesFilterTxt;
+            Extension := 'xls,xlsx';
+          END;
+      END;
+
+      CASE RecRef.NUMBER OF
+        DATABASE::"N+ e-Com Message":
+          BEGIN
+            RecRef.SETTABLE(ComMessage);
+            ComMessage.CALCFIELDS(File);
+            TempBlob.Blob := ComMessage.File;  // CreateInstream NIET rechtstreeks op ComMessage."Body Content", want die is Local en gaat bij einde van deze functie buiten scope (en dan blijft InStr leeg)
+          END;
+        ELSE
+          IF FileMgt.BLOBImportWithFilter(TempBlob,'','',FilesFilterText,Extension) = '' THEN
+            ERROR('');
+      END;
+      TempBlob.Blob.CREATEINSTREAM(InStr);
+    END;
+
+    LOCAL PROCEDURE FinalizeImport@11196378(VAR Generic@11196351 : Record 11196400;RecRef@11196350 : RecordRef;VAR ImportedDataBuffer@11196352 : Record 11196400);
+    VAR
+      ComMessage@11196353 : Record 11196433;
+      eComMgt@11196354 : Codeunit 11196420;
+    BEGIN
+      // 2023-09-25 EHS Downgraded from codeunit "N+ e-Com Library"
+      // CASE RecRef.NUMBER OF
+      //  DATABASE::"N+ e-Com Message":
+      //    BEGIN
+      //      RecRef.SETTABLE(ComMessage);
+      //      eComMgt.SaveRecordIDsAsMsgRecords(ImportedDataBuffer,ComMessage,2,TRUE);
+      //      RecRef.GETTABLE(ComMessage);
+      //    END;
+      // END;
+      Generic.UpdateSourceRecord(RecRef);
+      Generic.SetReturnValue(TRUE);
+    END;
+
+    LOCAL PROCEDURE InitWICSImport@11196376(VAR WICSInbound@11196355 : Codeunit 50029;VAR Generic@11196354 : Record 11196400;VAR RecRef@11196353 : RecordRef;VAR TempBlob@11196352 : Record 99008535;VAR InStr@11196351 : InStream;VAR ImportedDataBuffer@11196350 : Record 11196400;SingleMessage@11196356 : Boolean);
+    BEGIN
+      InitImport(Generic,RecRef,TempBlob,InStr,ImportedDataBuffer,'xml');
+      //WICSInbound.SetTestMode(Generic.GetBooleanParameter('TEST MODE'));
+      //WICSInbound.SetImportedDataBuffer(ImportedDataBuffer);
+      // WICSInbound.SetOnBeforeMappingFunctionSetID(Generic.GetDecimalParameter('ON BEFORE MAPPING'));
+      // WICSInbound.SetOnAfterMappingFunctionSetID(Generic.GetDecimalParameter('ON AFTER MAPPING'));
+      // WICSInbound.SetOnAfterFinalizeFunctionSetID(Generic.GetDecimalParameter('ON AFTER FINALIZE'));
+      // WICSInbound.SetEDIActionAttrCode(Generic.GetTextParameter('ACTION ATTR.'));
+      WICSInbound.InitializeImport(InStr);
+      // IF SingleMessage THEN
+      //  WICSInbound.InitSingleMessageImport();
+    END;
+
+    LOCAL PROCEDURE FinalizeWICSImport@11196379(VAR Generic@11196352 : Record 11196400;RecRef@11196351 : RecordRef;VAR ImportedDataBuffer@11196350 : Record 11196400);
+    VAR
+      ComMessage@11196354 : Record 11196433;
+      Channel@11196353 : Record 11196427;
+    BEGIN
+      FinalizeImport(Generic,RecRef,ImportedDataBuffer);
+      // IF RecRef.NUMBER = DATABASE::"N+ e-Com Message" THEN BEGIN
+      //  RecRef.SETTABLE(ComMessage);
+      //  IF (ComMessage."External Message ID" <> '') AND (ComMessage."Channel Code" <> '') THEN BEGIN
+      //    Channel.GET(ComMessage."Channel Code");
+      //    ComMessage."Response Code" := WICSConnectAPI.ConfirmMessageReceipt(Channel,ComMessage."External Message ID",0);
+      //    WICSConnectAPI.CheckResponseCode(ComMessage);
+      //    RecRef.GETTABLE(ComMessage);
+      //    Generic.UpdateSourceRecord(RecRef);
+      //  END;
+      // END;
+    END;
+
+    LOCAL PROCEDURE ReadWICSStockMutation@50018(VAR Generic@50000 : Record 11196400);
+    VAR
+      ImportedDataBuffer@50005 : TEMPORARY Record 11196400;
+      TempBlob@50004 : TEMPORARY Record 99008535;
+      WICSInbound@50003 : Codeunit 50029;
+      InStr@50002 : InStream;
+      RecRef@50001 : RecordRef;
+    BEGIN
+      InitWICSImport(WICSInbound,Generic,RecRef,TempBlob,InStr,ImportedDataBuffer,TRUE);
+      WICSInbound.ReadStockMutation();
+      FinalizeWICSImport(Generic,RecRef,ImportedDataBuffer);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+

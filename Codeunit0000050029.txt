@@ -1,0 +1,87 @@
+OBJECT Codeunit 50029 AAH WICS Inbound
+{
+  OBJECT-PROPERTIES
+  {
+    Date=02/10/23;
+    Time=[ 5:33:05 PM];
+    Modified=Yes;
+    Version List=AAH,WICS;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+          END;
+
+  }
+  CODE
+  {
+    VAR
+      IO@50000 : Codeunit 11196418;
+      TestMode@50001 : Boolean;
+
+    PROCEDURE InitializeImport@11196351(InStr@11196350 : InStream);
+    BEGIN
+      IO.InitializeImportFromStream(InStr);
+    END;
+
+    PROCEDURE SetTestMode@11196353(B@11196350 : Boolean);
+    BEGIN
+      TestMode := B;
+    END;
+
+    PROCEDURE ReadStockMutation@50000();
+    VAR
+      Location@50001 : Record 14;
+      LocationCode@50000 : Code[10];
+    BEGIN
+      IO.StartReadParent('Header');
+      IO.ReadCode(LocationCode,'PhysicalWarehouse');
+      Location.GET(LocationCode);
+      IO.CheckNodeValue('Type','StockMutations');
+
+      IF IO.FindFirstNode('Line') THEN
+        REPEAT
+          ReadItemJnlLine(LocationCode);
+        UNTIL NOT IO.NextNode();
+
+      IO.FinalizeParent();
+    END;
+
+    LOCAL PROCEDURE ReadItemJnlLine@50003(LocationCode@50000 : Code[10]);
+    VAR
+      ItemJnlLine@50001 : Record 83;
+      NextLineNo@50002 : Integer;
+    BEGIN
+      ItemJnlLine.RESET();
+      ItemJnlLine.SETRANGE("Journal Template Name",'ARTIKEL');
+      ItemJnlLine.SETRANGE("Journal Batch Name",'WICS');
+      IF ItemJnlLine.FINDLAST() THEN
+        NextLineNo := ItemJnlLine."Line No.";
+
+      ItemJnlLine.INIT();
+      ItemJnlLine."Journal Template Name" := 'ARTIKEL';
+      ItemJnlLine."Journal Batch Name" := 'WICS';
+      ItemJnlLine."Line No." := NextLineNo + 10000;
+      ItemJnlLine.SetUpNewLine(ItemJnlLine);
+      ItemJnlLine.VALIDATE("Posting Date",TODAY);
+      ItemJnlLine."Document No." := 'WICS';
+      ItemJnlLine.INSERT(TRUE);
+
+      ItemJnlLine.VALIDATE("Entry Type",ItemJnlLine."Entry Type"::"Positive Adjmt.");
+      ItemJnlLine.VALIDATE("Item No.",IO.GetTextValue('ItemCode'));
+      ItemJnlLine.VALIDATE("Location Code",LocationCode);
+      ItemJnlLine.VALIDATE(Quantity,IO.GetDecimalValue('Quantity'));
+      ItemJnlLine.VALIDATE("Reason Code",IO.GetTextValue('ReasonCode'));
+      ItemJnlLine.Description := STRSUBSTNO('%1 (%2) -> %3 (%4)',  // 2023-10-02 EHS: TODO Not just Description
+        IO.GetTextValue('Warehouse'),
+        IO.GetTextValue('Status'),
+        IO.GetTextValue('NewWarehouse'),
+        IO.GetTextValue('NewStatus'));
+      ItemJnlLine.MODIFY(TRUE);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+
